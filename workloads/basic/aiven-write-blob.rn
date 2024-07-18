@@ -1,5 +1,5 @@
-const BLOB_SIZE = latte::param!("blob_size", 128);
-const ROW_COUNT = latte::param!("row_count", 100000);
+const BLOB_SIZE = latte::param!("blob_size", 1024);
+const ROW_COUNT = latte::param!("row_count", 300000);
 
 const INSERT_PREPARED_STM = "insert";
 
@@ -19,7 +19,7 @@ pub async fn erase(db) {
 
 pub async fn prepare(db) {
     db.prepare(INSERT_PREPARED_STM, `INSERT INTO ${KEYSPACE}.${TABLE}(id, data) VALUES (:id, :data)`).await?;
-    ctx.load_cycle_count = ROW_COUNT;
+    db.load_cycle_count = ROW_COUNT;
 }
 
 pub async fn load(ctx, i) {
