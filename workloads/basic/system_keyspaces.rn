@@ -1,0 +1,48 @@
+//! Partition write stress test - writes very tiny single-row partitions.
+
+const READ = "read";
+
+// Number of keyspaces
+pub const KEYSPACES_COUNT = latte::param!("keyspaces", 1000);
+
+const KEYSPACE = "latte";
+const TABLE = "basic";
+
+pub async fn schema(db) {
+    let index = KEYSPACES_COUNT;
+
+    while index > 0 {
+        db.execute(`DROP KEYSPACE IF EXISTS ${KEYSPACE}${index}`).await?;
+
+        db.execute(`CREATE KEYSPACE IF NOT EXISTS ${KEYSPACE}${index} \
+                        WITH REPLICATION = { 'class' : 'SimpleStrategy', 'replication_factor' : 1 }`).await?;
+        db.execute(`DROP TABLE IF EXISTS ${KEYSPACE}${index}.${TABLE}`).await?;
+        db.execute(`CREATE TABLE ${KEYSPACE}${index}.${TABLE}(id bigint PRIMARY KEY)`).await?;
+
+        index = index - 1;
+    }
+}
+
+pub async fn erase(db) {
+    let index = KEYSPACES_COUNT;
+
+    while index > 0 {
+        db.execute(`TRUNCATE TABLE ${KEYSPACE}${index}.${TABLE}`).await?;
+        index = index - 1;
+    }
+}
+
+pub async fn prepare(db) {
+    db.prepare(READ, `SELECT * FROM system_metrics.keyspace_group WHERE name = ?`).await?
+}
+
+pub async fn load(db, i) {
+}
+
+pub async fn run(db, i) {
+    // org.apache.cassandra.metrics.keyspace.CasPrepareTotalLatency.system
+    let keyspace_index = latte::hash(i) % KEYSPACES_COUNT;
+//    let name = `org.apache.cassandra.metrics.keyspace.WriteTotalLatency.${KEYSPACE}777`;
+    let name = `org.apache.cassandra.metrics.keyspace.WriteTotalLatency.${KEYSPACE}${keyspace_index}`;
+    db.execute_prepared(READ, [name]).await?
+}

@@ -1,0 +1,24 @@
+//! Partition write stress test - writes very tiny single-row partitions.
+
+const READ = "read";
+
+const KEYSPACE = "latte";
+const TABLE = "basic";
+
+pub async fn schema(db) {
+}
+
+pub async fn erase(db) {
+    db.execute(`TRUNCATE TABLE ${KEYSPACE}.${TABLE}`).await
+}
+
+pub async fn prepare(db) {
+    db.prepare(READ, `SELECT * FROM system_views.thread_pools`).await?;
+}
+
+pub async fn load(db, i) {
+}
+
+pub async fn run(db, i) {
+    db.execute_prepared(READ, []).await?
+}
